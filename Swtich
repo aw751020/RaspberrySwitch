@@ -1,0 +1,70 @@
+1. Wiring
+1-1. Solder jumper wires with the switch.
+1-2. Connect the wires with GPIO pin 5 & 6. Please refer this site for Raspberry Pi’s GPIO pinout.
+Momentary shorting pin 5 and 6 make Raspberry Pi booting up from halt state. 
+Also, pin 5 will be used for detecting shutdown and reboot signals from the switch.
+
+
+2. Test wiring
+2-1. First, supply power to Raspberry Pi and boot it up.
+2-2. Then, shut it down. After the activity LED (green LED) goes off, Raspberry Pi is in halt state.
+
+sudo shutdown -h now
+
+2-3. Push the switch to test it. Raspberry Pi should boot up. If not, check the continuity of the switch with multimeter.
+
+
+3. Script for shutdown and reboot
+3-1. Create a python script file of any name or location.
+
+sudo nano /usr/local/bin/power-switch.py
+
+3-2. Write a code to detect shutdown and reboot signal.
+------------------------------------------------------------------------------------
+import threading, subprocess
+import RPi.GPIO as GPIO
+def shutdown():
+    subprocess.call('sudo shutdown -h now', shell=True)
+def edge_detected(pin):
+    if GPIO.input(pin):
+        t.cancel()
+        subprocess.call('sudo reboot', shell=True)
+    else:
+        t.start()
+if __name__ == '__main__':
+    try:
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(5, GPIO.IN)
+        GPIO.add_event_detect(5, GPIO.BOTH, callback=edge_detected, bouncetime=10)
+        t = threading.Timer(3.0, shutdown)
+        while True:
+            pass
+    finally:
+        GPIO.cleanup()
+--------------------------------------------------------------------------------------
+Pushing and holding the switch more than 3 seconds makes Raspberry Pi shutdown, 
+and pushing the switch less than 3 seconds makes it reboot.
+
+
+4. Enable script at boot
+4-1. Open /etc/rc.local.
+
+sudo nano /etc/rc.local
+
+4-2. Add a line above “exit 0” to execute the script at boot.
+
+python /usr/local/bin/power-switch.py &
+
+4-3. Reboot.
+
+sudo reboot
+
+
+5. Verify
+5-1. Verify reboot by pushing the switch less than 3 seconds when Raspberry Pi is running.
+5-2. Verify shutdown by pushing and hold the switch more than 3 seconds when Raspberry Pi is running.
+5-3. Verify booting up by pushing the switch when Raspberry Pi is in halt state.
+
+ 
+
+
